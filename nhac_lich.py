@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "your_verify_token")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "2sy1f7ydCu6PssrDRA3OphumSmN_2srpiazPMBQ948nZygb1Y")
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN", "your_page_access_token")
 
 daily_schedule = {
@@ -73,4 +73,5 @@ def send_message(recipient_id, text):
     requests.post(url, headers=headers, json=payload, params=params)
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
