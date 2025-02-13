@@ -5,11 +5,9 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Lấy VERIFY_TOKEN và PAGE_ACCESS_TOKEN từ biến môi trường
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "your_verify_token")
-PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN", "your_page_access_token")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "giabao5443")
+PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN", "EAAUWq9dPZA14BOyU7thlZCZAkZBOeTKLWHJKxI2agd0Qjjrn9BxggXOHTVQg28s0vZClhQI4AsJhSHge3wLH2ssZBI4OCG7KUeHgX4BWcUy9isVCI5zPklAclumoWZASP1zbb9F7NPiibmbZCe0ZAolIC5b04uq8aQownZAE1InvxyKRYQR4cEroinyQ4Q8dcmQ4ieY526F1tDRrUWRH0ivdMZD")
 
-# Lịch học theo ngày
 daily_schedule = {
     "Monday": ["KT Phân tích trong CN sinh học (07:00 - 09:50, F303)", "Quá trình & TB truyền nhiệt (14:30 - 17:20, E114)"],
     "Tuesday": ["TN Quá trình và TB (07:00 - 10:50, D112)", "Lịch sử Đảng Cộng sản VN (12:30 - 15:20, F110)"],
@@ -20,13 +18,11 @@ daily_schedule = {
     "Sunday": ["Không có lịch học"]
 }
 
-# Hàm lấy lịch học theo ngày
 def get_schedule(day=None):
     if day is None:
         day = datetime.datetime.today().strftime('%A')
     return daily_schedule.get(day, ["Không có lịch học"])
 
-# Route kiểm tra webhook (dùng cho Facebook Messenger)
 @app.route("/webhook", methods=["GET"])
 def verify_webhook():
     token = request.args.get("hub.verify_token")
@@ -35,13 +31,13 @@ def verify_webhook():
         return challenge
     return "Forbidden", 403
 
-# Route xử lý tin nhắn từ người dùng
 @app.route("/webhook", methods=["POST"])
 def handle_messages():
     data = request.get_json()
-    if data.get("object") == "page":
-        for entry in data.get("entry", []):
-            for messaging_event in entry.get("messaging", []):
+    print("Received JSON:", data)
+    if data["object"] == "page":
+        for entry in data["entry"]:
+            for messaging_event in entry["messaging"]:
                 sender_id = messaging_event["sender"]["id"]
                 if "message" in messaging_event and "text" in messaging_event["message"]:
                     user_message = messaging_event["message"]["text"].lower()
@@ -49,7 +45,6 @@ def handle_messages():
                     send_message(sender_id, response_text)
     return "EVENT_RECEIVED", 200
 
-# Xử lý tin nhắn người dùng
 def process_user_message(user_input):
     if user_input in ["hôm nay", "today"]:
         day = datetime.datetime.today().strftime('%A')
@@ -65,9 +60,8 @@ def process_user_message(user_input):
             return "Xin lỗi, tôi không hiểu ngày này. Vui lòng nhập lại."
     
     schedule = get_schedule(day)
-    return f"Lịch học {user_input.capitalize()} ({day}):\n- " + "\n- ".join(schedule)
+    return f"Lịch học {user_input} ({day}):\n- " + "\n- ".join(schedule)
 
-# Gửi tin nhắn đến Facebook Messenger
 def send_message(recipient_id, text):
     url = "https://graph.facebook.com/v17.0/me/messages"
     headers = {"Content-Type": "application/json"}
@@ -77,18 +71,9 @@ def send_message(recipient_id, text):
         "messaging_type": "RESPONSE",
     }
     params = {"access_token": PAGE_ACCESS_TOKEN}
-
-    try:
-        response = requests.post(url, headers=headers, json=payload, params=params)
-        response.raise_for_status()  # Kiểm tra nếu có lỗi
-    except requests.exceptions.RequestException as e:
-        print(f"Lỗi gửi tin nhắn: {e}")
-
-# Route kiểm tra trạng thái API
-@app.route("/", methods=["GET"])
-def home():
-    return "Chatbot Lịch Học đang chạy!", 200
+    requests.post(url, headers=headers, json=payload, params=params)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
